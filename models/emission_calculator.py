@@ -30,7 +30,7 @@ class CarbonCalculator:
             "electric_scooter": 0.02,  
             "electric_bike": 0.01,  
 
-
+            # No CO2 emissions
             "bike": 0.00,  
             "walking": 0.00  
         }

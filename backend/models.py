@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.dependencies import Base  # ✅ Ensure this is the correct Base
-
+from datetime import UTC
 class User(Base):
     __tablename__ = "users"
 
@@ -22,7 +22,12 @@ class EmissionHistory(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     category = Column(String, nullable=False)  # transport, energy, diet, etc.
     emission_value = Column(Float, nullable=False)  # kg CO2 equivalent
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    fuel_type = Column(String, nullable=False)  # ✅ Store fuel type
+    mpg = Column(Float, nullable=False)  # ✅ Store miles per gallon
+    miles = Column(Float, nullable=False)  # ✅ Store miles traveled
+    passengers = Column(Integer, nullable=False)  # ✅ Store passengers
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+
 
     user = relationship("User", back_populates="emissions")
 

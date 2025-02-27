@@ -14,7 +14,7 @@ calculator = CarbonCalculator()
 def calculate_fuel_vehicle_emissions(request: FuelVehicleRequest, db: Session = Depends(get_db)):
 
     """
-    API endpoint to calculate emissions for fuel-based vehicles (gasoline, diesel, hybrid_car, motorcycle, ridshare_solo, rideshare_duo).
+    API endpoint to calculate emissions for fuel-based vehicles (gasoline_car, diesel_car, hybrid_car, motorcycle, ridshare_solo, rideshare_shared).
     """
     user = db.query(User).filter(User.id == request.user_id).first()
 
@@ -26,8 +26,12 @@ def calculate_fuel_vehicle_emissions(request: FuelVehicleRequest, db: Session = 
     #Saves to the database
     emission_entry = EmissionHistory(
         user_id=request.user_id,
-        category = "fuel_vehicle",
-        emission_value=emissions
+        category="fuel_vehicle",
+        emission_value=emissions,
+        fuel_type=request.fuel_type,  # ✅ Store fuel type
+        mpg=request.mpg,  # ✅ Store MPG
+        miles=request.miles,  # ✅ Store miles traveled
+        passengers=request.passengers  # ✅ Store passengers
     )
     db.add(emission_entry)
     db.commit()
@@ -57,12 +61,17 @@ def calculate_electric_vehicle_emissions(request: ElectricVehicleRequest, db: Se
     emissions = calculator.estimate_electric_vehicle_emissions(request.electric_type,request.miles_per_kwh, request.miles, request.passengers)
     #Saves to the database
     emission_entry = EmissionHistory(
-        user_id=1,
-        category = "electric_vehicle",
-        emission_value=emissions
+        user_id=request.user_id,
+        category="electric_vehicle",
+        emission_value=emissions,
+        fuel_type=request.electric_type,  #  Store fuel type
+        miles=request.miles,  #  Store miles traveled
+        passengers=request.passengers,  #  Store passengers
+        mpg = request.miles_per_kwh # Efficiency
     )
     db.add(emission_entry)
     db.commit()
+    db.refresh(emission_entry)
 
     return ElectricVehicleResponse(
         user_id=request.user_id,
@@ -86,12 +95,16 @@ def calculate_public_transport_emissions(request: PublicTransportRequest, db: Se
     emissions = calculator.estimate_public_transport_emissions(request.transport_type, request.miles, request.passengers)
     #Saves to the database
     emission_entry = EmissionHistory(
-        user_id=1,
-        category = "public_transport",
-        emission_value=emissions
+        user_id=request.user_id,
+        category="public_transport",
+        emission_value=emissions,
+        fuel_type=request.transport_type,  #  Store fuel type
+        miles=request.miles,  #  Store miles traveled
+        passengers=request.passengers,  #  Store passengers
     )
     db.add(emission_entry)
     db.commit()
+    db.refresh(emission_entry)
     return PublicTransportResponse(
         user_id=request.user_id,
         transport_type=request.transport_type,
