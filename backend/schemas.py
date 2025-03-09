@@ -45,3 +45,13 @@ class PublicTransportResponse(BaseModel):
     miles: float
     passengers: int
     emissions_lbs_per_person: float
+
+# 📌 Recommendation Request & Response
+class RecommendationResponse(BaseModel):
+    user_id: int
+    recommendation_text: str
+    category: str
+    impact_value: float
+    current_emissions: float
+    created_at: str  # Or datetime if you want to format it properly
+

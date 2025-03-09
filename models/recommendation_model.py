@@ -1,88 +1,89 @@
 from typing import List, Dict
-import numpy as np
+from sqlalchemy.orm import Session
+from backend.models import EmissionHistory
 
 class RecommendationModel:
     def __init__(self):
-        # Dictionary of reduction strategies and their potential impact (in CO2 kg/year)
+        # Transportation-focused strategies with potential CO2 savings
         self.strategies = {
-            'transportation': {
-                'use_public_transport': {'impact': 2000, 'description': 'Switch to public transportation for your daily commute'},
-                'bike_or_walk': {'impact': 1500, 'description': 'Use bicycle or walk for short distances'},
-                'electric_vehicle': {'impact': 2500, 'description': 'Consider switching to an electric vehicle'}
-            },
-            'energy': {
-                'led_lighting': {'impact': 300, 'description': 'Replace all bulbs with LED lights'},
-                'smart_thermostat': {'impact': 600, 'description': 'Install a smart thermostat'},
-                'renewable_energy': {'impact': 4000, 'description': 'Switch to renewable energy sources'}
-            },
-            'lifestyle': {
-                'reduce_meat': {'impact': 800, 'description': 'Reduce meat consumption by 50%'},
-                'local_produce': {'impact': 400, 'description': 'Buy local and seasonal produce'},
-                'reduce_waste': {'impact': 500, 'description': 'Implement comprehensive recycling and composting'}
-            }
+            'use_public_transport': {'impact': 200, 'description': 'Switch to public transportation for your daily commute'},
+            'bike_or_walk': {'impact': 150, 'description': 'Use a bicycle or walk for short distances'},
+            'electric_vehicle': {'impact': 300, 'description': 'Consider switching to an electric vehicle'},
+            'carpool': {'impact': 100, 'description': 'Share rides with others to reduce emissions'},
+            'optimize_routes': {'impact': 50, 'description': 'Plan efficient routes to minimize fuel consumption'}
         }
 
-    def generate_recommendations(self, user_data: Dict) -> List[Dict]:
+    def generate_recommendations(self, user_id: int, db: Session) -> List[Dict]:
         """
-        Generate personalized recommendations based on user's carbon footprint data.
-        
+        Generate transportation-focused recommendations based on user's emissions history.
+
         Args:
-            user_data: Dictionary containing user's carbon footprint breakdown
-                      (transportation, energy, lifestyle metrics)
-        
+            user_id (int): The user's ID
+            db (Session): Database session
+
         Returns:
-            List of recommended actions sorted by potential impact
+            List of recommendations with current emissions & potential savings.
         """
+        transport_emissions = db.query(EmissionHistory).filter(
+            EmissionHistory.user_id == user_id,
+            EmissionHistory.category.in_(['fuel_vehicle', 'electric_vehicle', 'public_transport'])
+        ).all()
+
+        total_emissions = sum(entry.emission_value for entry in transport_emissions)
         recommendations = []
-        
-        # Analyze transportation footprint
-        if user_data.get('transportation_footprint', 0) > 4000:
-            recommendations.extend(self._get_category_recommendations('transportation'))
-            
-        # Analyze energy footprint
-        if user_data.get('energy_footprint', 0) > 3000:
-            recommendations.extend(self._get_category_recommendations('energy'))
-            
-        # Analyze lifestyle footprint
-        if user_data.get('lifestyle_footprint', 0) > 2000:
-            recommendations.extend(self._get_category_recommendations('lifestyle'))
-            
-        # Sort recommendations by impact
-        recommendations.sort(key=lambda x: x['potential_impact'], reverse=True)
-        
-        return recommendations[:5]  # Return top 5 recommendations
 
-    def _get_category_recommendations(self, category: str) -> List[Dict]:
-        """
-        Get all recommendations for a specific category.
-        
-        Args:
-            category: The category to get recommendations for
-            
-        Returns:
-            List of recommendations for the category
-        """
-        category_recommendations = []
-        
-        for strategy, details in self.strategies[category].items():
-            category_recommendations.append({
-                'category': category,
-                'strategy': strategy,
-                'description': details['description'],
-                'potential_impact': details['impact']
-            })
-            
-        return category_recommendations
+        # ✅ Step 1: Determine the most common vehicle type used
+        vehicle_type_counts = {}
+        for entry in transport_emissions:
+            vehicle_type_counts[entry.category] = vehicle_type_counts.get(entry.category, 0) + 1
 
-    def calculate_potential_savings(self, selected_recommendations: List[Dict]) -> float:
-        """
-        Calculate potential CO2 savings from implementing selected recommendations.
-        
-        Args:
-            selected_recommendations: List of recommendations to implement
-            
-        Returns:
-            Total potential CO2 savings in kg/year
-        """
-        total_savings = sum(rec['potential_impact'] for rec in selected_recommendations)
-        return total_savings
+        most_used_vehicle_type = max(vehicle_type_counts, key=vehicle_type_counts.get, default="transportation")
+
+        # ✅ Step 2: Dynamically generate recommendations
+        if total_emissions > 1000:  
+            recommendations.append(self._format_recommendation('use_public_transport', total_emissions, most_used_vehicle_type, "major change"))  
+
+        elif total_emissions > 700:  
+            recommendations.append(self._format_recommendation('electric_vehicle', total_emissions, most_used_vehicle_type, "major change"))  
+
+        elif total_emissions > 500:  
+            recommendations.append(self._format_recommendation('carpool', total_emissions, most_used_vehicle_type, "small change"))  
+
+        elif total_emissions > 300:  
+            recommendations.append(self._format_recommendation('optimize_routes', total_emissions, most_used_vehicle_type, "small change"))  
+
+        elif total_emissions > 100:  
+            recommendations.append(self._format_recommendation('bike_or_walk', total_emissions, most_used_vehicle_type, "small change"))  
+
+        # ✅ Step 3: Sort by feasibility & impact
+        recommendations.sort(key=lambda x: (x['recommendation_level'] == "small change", -x['potential_savings']))
+
+        return recommendations[:5]  
+
+    def _format_recommendation(self, strategy: str, current_emissions: float, vehicle_type: str, change_level: str) -> Dict:
+        """Formats a recommendation with potential savings & level of change."""
+
+        # Map vehicle types to categories
+        category_mapping = {
+            "fuel_vehicle": "fuel_vehicle",
+            "electric_vehicle": "electric_vehicle",
+            "public_transport": "public_transport"
+        }
+        category = category_mapping.get(vehicle_type, "sustainable_transport")
+
+        # Calculate potential CO₂ savings
+        potential_savings = min(self.strategies[strategy]['impact'], current_emissions)
+
+        return {
+            'strategy': strategy,
+            'description': self.strategies[strategy]['description'],
+            'current_emissions': current_emissions,  
+            'potential_savings': potential_savings,  
+            'potential_impact': self.strategies[strategy]['impact'],
+            'category': category,  
+            'vehicle_type': vehicle_type,  
+            'recommendation_level': change_level  # ✅ Classify as "small change" or "major change"
+        }
+
+
+

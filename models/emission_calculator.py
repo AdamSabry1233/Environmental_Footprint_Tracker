@@ -15,17 +15,17 @@ class CarbonCalculator:
             "rideshare_solo": 0.89,  # Same as gasoline car if alone
             "rideshare_shared": 0.45,  # Assumes 2+ people sharing
 
-            # Public Transport (lbs CO₂ per mile per passenger)
-            "bus": 0.17,  # Public transit bus
-            "diesel_bus": 0.4,  # Older diesel buses
-            "train": 0.2,  # Passenger rail (Amtrak)
-            "subway": 0.1,  # Urban transit systems
-            "high_speed_rail": 0.05,  # High-speed electric rail
-            "airplane": 0.54,  # Short-haul flights
-            "long_haul_flight": 0.43,  # More efficient over long distances
-            "ferry": 0.3,  # Boat/ferry transport
+            # Public Transport (lbs CO₂ per mile per vehicle)
+            "bus": 6.8,  # Public transit bus
+            "diesel_bus": 16,  # Older diesel buses
+            "train": 200,  # Passenger rail (Amtrak)
+            "subway": 80,  # Urban transit systems
+            "high_speed_rail": 100,  # High-speed electric rail
+            "airplane": 54000,  # Short-haul flights
+            "long_haul_flight": 172000,  # More efficient over long distances
+            "ferry": 300,  # Boat/ferry transport
 
-            # Electric Vehicles & Alternative Transport (lbs CO₂ per mile)
+            # Electric Vehicles (lbs CO₂ per mile)
             "electric_car": 0.06,  # EV based on CA grid
             "electric_scooter": 0.02,  
             "electric_bike": 0.01,  
@@ -101,5 +101,22 @@ class CarbonCalculator:
             passengers = 1  # Avoid division by zero
 
         return self.emission_factors.get(transport_type, 0) * miles / passengers
+    
+
+    def calculate_co2_savings(self, default_route: dict, eco_route: dict) -> float:
+        """
+        Calculates CO₂ saved by choosing an eco-friendly route.
+
+        Args:
+            default_route (dict): {'mode': str, 'distance_miles': float}
+            eco_route (dict): {'mode': str, 'distance_miles': float}
+
+        Returns:
+            float: CO₂ savings in lbs
+        """
+        co2_default = self.emission_factors.get(default_route["mode"], 0.89) * default_route["distance_miles"]
+        co2_eco = self.emission_factors.get(eco_route["mode"], 0.89) * eco_route["distance_miles"]
+        return round(co2_default - co2_eco, 2)  # CO₂ saved
+
 
 
