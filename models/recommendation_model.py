@@ -1,10 +1,12 @@
 from typing import List, Dict
 from sqlalchemy.orm import Session
-from backend.models import EmissionHistory
+from backend.models import EmissionHistory, RecommendationFeedback, Recommendation
 
 class RecommendationModel:
     def __init__(self):
-        # Transportation-focused strategies with potential CO2 savings
+        """
+        Transportation-focused strategies with dynamic AI-driven recommendations.
+        """
         self.strategies = {
             'use_public_transport': {'impact': 200, 'description': 'Switch to public transportation for your daily commute'},
             'bike_or_walk': {'impact': 150, 'description': 'Use a bicycle or walk for short distances'},
@@ -15,14 +17,11 @@ class RecommendationModel:
 
     def generate_recommendations(self, user_id: int, db: Session) -> List[Dict]:
         """
-        Generate transportation-focused recommendations based on user's emissions history.
+        Generate recommendations dynamically based on emissions & user behavior.
 
-        Args:
-            user_id (int): The user's ID
-            db (Session): Database session
-
-        Returns:
-            List of recommendations with current emissions & potential savings.
+        - Retrieves user's transport emissions.
+        - Sorts based on highest emissions category.
+        - Adjusts weights based on previous feedback.
         """
         transport_emissions = db.query(EmissionHistory).filter(
             EmissionHistory.user_id == user_id,
@@ -32,14 +31,14 @@ class RecommendationModel:
         total_emissions = sum(entry.emission_value for entry in transport_emissions)
         recommendations = []
 
-        # ✅ Step 1: Determine the most common vehicle type used
+        # Find the most common transport mode used by the user
         vehicle_type_counts = {}
         for entry in transport_emissions:
             vehicle_type_counts[entry.category] = vehicle_type_counts.get(entry.category, 0) + 1
 
         most_used_vehicle_type = max(vehicle_type_counts, key=vehicle_type_counts.get, default="transportation")
 
-        # ✅ Step 2: Dynamically generate recommendations
+        # Adjust recommendations dynamically based on total emissions
         if total_emissions > 1000:  
             recommendations.append(self._format_recommendation('use_public_transport', total_emissions, most_used_vehicle_type, "major change"))  
 
@@ -55,13 +54,49 @@ class RecommendationModel:
         elif total_emissions > 100:  
             recommendations.append(self._format_recommendation('bike_or_walk', total_emissions, most_used_vehicle_type, "small change"))  
 
-        # ✅ Step 3: Sort by feasibility & impact
+        # Adjust recommendations based on user feedback history
+        recommendations = self.adjust_based_on_feedback(user_id, recommendations, db)
+
+        # Sort recommendations by impact & feasibility
         recommendations.sort(key=lambda x: (x['recommendation_level'] == "small change", -x['potential_savings']))
 
         return recommendations[:5]  
 
+    def adjust_based_on_feedback(self, user_id: int, recommendations: List[Dict], db: Session):
+        """
+        Adjusts recommendations based on user feedback.
+        - Boosts accepted recommendations.
+        - Reduces weight of rejected recommendations.
+        """
+
+        feedback = db.query(RecommendationFeedback).filter(
+            RecommendationFeedback.user_id == user_id
+        ).all()
+
+        # ✅ Fetch `recommendation_text` by joining with `Recommendation` table
+        accepted_suggestions = {
+            db.query(Recommendation.recommendation_text)
+            .filter(Recommendation.id == fb.recommendation_id)
+            .scalar() for fb in feedback if fb.accepted
+        }
+
+        rejected_suggestions = {
+            db.query(Recommendation.recommendation_text)
+            .filter(Recommendation.id == fb.recommendation_id)
+            .scalar() for fb in feedback if not fb.accepted
+        }
+
+        for rec in recommendations:
+            if rec["description"] in accepted_suggestions:
+                rec["potential_savings"] *= 1.2  #  Boost impact by 20%
+            if rec["description"] in rejected_suggestions:
+                rec["potential_savings"] *= 0.7  #  Reduce impact by 30%
+
+        return recommendations
+
+
     def _format_recommendation(self, strategy: str, current_emissions: float, vehicle_type: str, change_level: str) -> Dict:
-        """Formats a recommendation with potential savings & level of change."""
+        """Formats a recommendation with dynamic AI weight adjustments."""
 
         # Map vehicle types to categories
         category_mapping = {
@@ -79,11 +114,7 @@ class RecommendationModel:
             'description': self.strategies[strategy]['description'],
             'current_emissions': current_emissions,  
             'potential_savings': potential_savings,  
-            'potential_impact': self.strategies[strategy]['impact'],
             'category': category,  
             'vehicle_type': vehicle_type,  
-            'recommendation_level': change_level  # ✅ Classify as "small change" or "major change"
+            'recommendation_level': change_level  # Classify as "small change" or "major change"
         }
-
-
-

@@ -8,40 +8,33 @@ GROQ_API_URL = os.getenv("GROQ_API_URL", "https://api.groq.com/openai/v1/chat/co
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")  
 
 def get_user_emissions(user_id: int, db: Session):
-    """
-    Fetch user-specific emissions history.
-    """
-    emissions = db.query(EmissionHistory).filter(
-        EmissionHistory.user_id == user_id
-    ).all()
-
+    emissions = db.query(EmissionHistory).filter(EmissionHistory.user_id == user_id).all()
     if not emissions:
         return "No emissions data available."
-
-    # Summarize emissions data
-    return "\n".join([
-        f"{entry.category}: {entry.emission_value} kg CO2 (Miles: {entry.miles})"
-        for entry in emissions
-    ])
+    
+    return "\n".join([f"{entry.category}: {entry.emission_value} kg CO2" for entry in emissions])
 
 def chat_with_ai(user_id: int, user_query: str, db: Session):
-    """
-    Calls Groq AI for chatbot responses, integrating user emissions data.
-    """
-    # Fetch user emissions
     user_emissions = get_user_emissions(user_id, db)
 
-    # ✅ Shorter, more specific prompt with user emissions context
     prompt = f"""
     You are an AI sustainability assistant. 
-    **Be brief and give only 3 suggestions** based on the user's actual emissions data be very informative as well.
+    **Your role**: Give short, helpful eco-friendly advice in a conversational way.
 
-    **User Emissions Data:**
-    {user_emissions}
-
+    - Be **engaging but brief** (limit to 2-3 sentences).
+    - Always ask a **follow-up question** to keep the conversation flowing.
+    - Offer **choices** to guide users to their next topic.
+    - Assume CO2 emissions are always in IBs
+    
+    --- 
+    **User Data:** {user_emissions}
     **User Query:** {user_query}
+    ---
 
-    Respond with **short, actionable steps** to reduce their carbon footprint in a very informative way.
+    Keep it short.
+    Ask a follow-up question.
+    Offer 2-3 topic choices.
+    - Make sure concrete answers are provided if a follow up question is asked.
     """
 
     headers = {
@@ -50,9 +43,11 @@ def chat_with_ai(user_id: int, user_query: str, db: Session):
     }
     payload = {
         "model": GROQ_MODEL,  
-        "messages": [{"role": "system", "content": "Keep responses concise and directly related to sustainability."},
-                     {"role": "user", "content": prompt}],
-        "temperature": 0.5  # Lower temp = more focused response
+        "messages": [
+            {"role": "system", "content": "Keep responses concise and interactive."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.7
     }
 
     response = requests.post(GROQ_API_URL, json=payload, headers=headers)

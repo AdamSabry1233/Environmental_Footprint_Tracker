@@ -1,19 +1,20 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from backend.dependencies import Base  # ✅ Ensure this is the correct Base
+from backend.dependencies import Base  # Ensure this is the correct Base
 from datetime import UTC
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    created_at = Column(DateTime, default=datetime.now(UTC))  # Timestamp
     name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)
 
-    emissions = relationship("EmissionHistory", back_populates="user", cascade="all, delete-orphan")
+    emission_history = relationship("EmissionHistory", back_populates="user")
     recommendations = relationship("Recommendation", back_populates="user", cascade="all, delete-orphan")
     progress = relationship("Progress", back_populates="user", cascade="all, delete-orphan")
     eco_friendly_routes = relationship("EcoFriendlyRoute", back_populates="user")
@@ -48,17 +49,19 @@ class EmissionHistory(Base):
     __tablename__ = "emission_history"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    category = Column(String, nullable=False)  # transport, energy, diet, etc.
-    emission_value = Column(Float, nullable=False)  # kg CO2 equivalent
-    fuel_type = Column(String, nullable=False)  # ✅ Store fuel type
-    mpg = Column(Float, nullable=True)  # ✅ Store miles per gallon
-    miles = Column(Float, nullable=False)  # ✅ Store miles traveled
-    passengers = Column(Integer, nullable=False)  # ✅ Store passengers
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  
+    origin = Column(String, nullable=False)  
+    destination = Column(String, nullable=False)  
+    transport_mode = Column(String, nullable=False)  
+    fuel_type = Column(String, nullable=True)  
+    miles = Column(Float, nullable=False)  
+    passengers = Column(Integer, nullable=False, default=1)  
+    emission_value = Column(Float, nullable=False)  
     timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    category = Column(String, nullable=False)  # ADD THIS FIELD
 
+    user = relationship("User", back_populates="emission_history")
 
-    user = relationship("User", back_populates="emissions")
 
 
 class RouteEmissions(Base):
@@ -109,14 +112,14 @@ class Recommendation(Base):
     recommendation_level = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.now(UTC))
 
-    # ✅ Ensure back_populates links to User model
+    #  Ensure back_populates links to User model
     user = relationship("User", back_populates="recommendations")  
 
-    # ✅ New fields for AI feedback system
+    # New fields for AI feedback system
     accepted = Column(Boolean, nullable=True, default=None)
     feedback = Column(String, nullable=True)
 
-    # ✅ Relationship to feedback table
+    # Relationship to feedback table
     feedbacks = relationship("RecommendationFeedback", back_populates="recommendation")
 
 
@@ -139,8 +142,10 @@ class Progress(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    goal = Column(String, nullable=False)  # e.g., Reduce emissions by 20%
+    goal = Column(String, nullable=False)  # Example: "Reduce emissions by 20%"
     progress_percentage = Column(Float, default=0.0)
+    baseline_emissions = Column(Float, nullable=False, default=0.0)  # Store baseline emissions
     last_updated = Column(DateTime, default=datetime.now(UTC))
 
     user = relationship("User", back_populates="progress")
+

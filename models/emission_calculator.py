@@ -35,10 +35,10 @@ class CarbonCalculator:
             "walking": 0.00  
         }
 
-        # ⚡ CO₂ per kWh of electricity;
+        #  CO₂ per kWh of electricity;
         self.co2_per_kwh = 0.450  # U.S. average grid emissions
 
-        # ⛽ CO₂ per gallon of fuel burned
+        #  CO₂ per gallon of fuel burned
         self.co2_per_gallon = {
             "gasoline": 19.6,  # lbs CO2 per gallon of gasoline burned
             "diesel": 22.4   # lbs CO2 per gallon of diesel burned

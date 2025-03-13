@@ -51,7 +51,7 @@ class MapsAPI:
                 print("[ERROR] Could not convert addresses to coordinates.")
                 return None, None  
 
-            # ✅ Fix: Convert FastAPI mode names to Google Maps API format
+            # Fix: Convert FastAPI mode names to Google Maps API format
             mode_mapping = {
                 "driving": "DRIVE",
                 "bicycling": "BICYCLE",

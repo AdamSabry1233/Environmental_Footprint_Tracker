@@ -18,13 +18,13 @@ class AIManager:
         """
         Generate AI-powered recommendations using static and AI-driven logic.
         """
-        # ✅ Predict user's future CO₂ footprint
+        # Predict user's future CO₂ footprint
         predicted_footprint = self.carbon_predictor.predict_future_emissions(user_id, db)
 
-        # ✅ Generate static recommendations based on emission history
+        # Generate static recommendations based on emission history
         base_recommendations = self.recommendation_model.generate_recommendations(user_id, db)
 
-        # ✅ Modify recommendations based on AI-predicted footprint
+        # Modify recommendations based on AI-predicted footprint
         if predicted_footprint > 500:
             base_recommendations.append({
                 "description": "Switch to an electric vehicle",
@@ -36,10 +36,10 @@ class AIManager:
                 "impact_value": 50
             })
 
-        # ✅ Use AI clustering to refine recommendations based on user similarity
+        # Use AI clustering to refine recommendations based on user similarity
         refined_recommendations = self.ai_agent.refine_recommendations(user_id, base_recommendations, db)
 
-        return refined_recommendations, predicted_footprint  # ✅ Return AI-enhanced recommendations
+        return refined_recommendations, predicted_footprint  # Return AI-enhanced recommendations
 
 
     def predict_carbon_footprint(self, user_id: int, db: Session):

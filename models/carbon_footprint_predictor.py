@@ -30,7 +30,6 @@ class CarbonFootprintPredictor:
 
         return travel_data if not travel_data.empty else None
 
-
     def train_model(self, user_id: int, db: Session):
         """
         Train AI model using a user's historical travel emissions.
@@ -38,16 +37,15 @@ class CarbonFootprintPredictor:
         travel_data = self.get_user_travel_data(user_id, db)
 
         if travel_data is None or travel_data.empty:
-            return
+            return None  # No data to train
 
         X = travel_data[["distance_miles"]].values
         y = travel_data["co2_emissions"].values
 
-        if len(X) < 3:  # ✅ Avoid training on insufficient data
-            return
+        if len(X) < 3:  #  Handle cases with fewer than 3 records
+            return None  # Not enough data to train
 
-        self.model.fit(X, y)  # ✅ Train model
-
+        self.model.fit(X, y)  #  Train model
 
     def predict_future_emissions(self, user_id: int, db: Session):
         """
@@ -56,9 +54,9 @@ class CarbonFootprintPredictor:
         travel_data = self.get_user_travel_data(user_id, db)
 
         if travel_data is None or travel_data.empty:
-            return 0  # No data available
+            return None  #  Return None instead of 0 for missing data
 
-        # ✅ If <3 records, return the average instead of 0
+        # If <3 records, return the average instead of training
         if len(travel_data) < 3:
             return round(travel_data["co2_emissions"].mean(), 2)
 
@@ -67,12 +65,8 @@ class CarbonFootprintPredictor:
         avg_future_distance = np.mean(travel_data["distance_miles"])  
 
         if np.isnan(avg_future_distance) or avg_future_distance == 0:
-            return round(travel_data["co2_emissions"].mean(), 2)  # ✅ Return average emissions
+            return round(travel_data["co2_emissions"].mean(), 2)  #  Return average emissions
 
         predicted_emission = self.model.predict(np.array([[avg_future_distance]]))[0]
 
-        return round(float(predicted_emission), 2)  # ✅ Convert np.float64 → Python float
-    
-    
-    
-
+        return round(float(predicted_emission), 2)  #  Convert np.float64 → Python float

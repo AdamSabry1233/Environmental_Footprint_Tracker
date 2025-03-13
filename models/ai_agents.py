@@ -31,7 +31,7 @@ class AIAgent:
             for rec in records
         ])
 
-        # ✅ Convert to numeric & replace NaNs with 0
+        # Convert to numeric & replace NaNs with 0
         data["emission_value"] = pd.to_numeric(data["emission_value"], errors="coerce").fillna(0)
         data["miles_traveled"] = pd.to_numeric(data["miles_traveled"], errors="coerce").fillna(0)
 
@@ -49,12 +49,12 @@ class AIAgent:
             print("⚠️ No valid training data available. Skipping clustering.")
             return  # No training data
 
-        X = user_data[["emission_value", "miles_traveled"]].values  # ✅ Include miles traveled
+        X = user_data[["emission_value", "miles_traveled"]].values  #  Include miles traveled
 
-        # ✅ Ensure no NaN values before training KMeans
+        #  Ensure no NaN values before training KMeans
         if np.isnan(X).any():
             print("⚠️ NaN detected in training data. Replacing NaNs with 0.")
-            X = np.nan_to_num(X)  # ✅ Replace NaNs with 0 before training
+            X = np.nan_to_num(X)  #  Replace NaNs with 0 before training
 
         self.kmeans = KMeans(n_clusters=self.n_clusters, random_state=42, n_init=10)
         self.kmeans.fit(X)  # Train model
@@ -72,15 +72,15 @@ class AIAgent:
         if user_id not in user_data["user_id"].values:
             return None  # User not found
         
-        # ✅ Extract both 'emission_value' and 'miles_traveled'
+        #  Extract both 'emission_value' and 'miles_traveled'
         user_features = user_data[user_data["user_id"] == user_id][["emission_value", "miles_traveled"]].values
 
-        # ✅ Ensure shape consistency (no NaN values)
+        #  Ensure shape consistency (no NaN values)
         if np.isnan(user_features).any():
             print(f"⚠️ User {user_id} has NaN values. Replacing NaNs with 0.")
             user_features = np.nan_to_num(user_features)
 
-        return self.kmeans.predict(user_features)[0]  # ✅ Now passes 2D input
+        return self.kmeans.predict(user_features)[0]  #  Now passes 2D input
 
 
     
@@ -90,19 +90,19 @@ class AIAgent:
         """
         user_cluster = self.predict_cluster(user_id, db)
         if user_cluster is None:
-            return recommendations  # ✅ Return unmodified recommendations if clustering fails.
+            return recommendations  #  Return unmodified recommendations if clustering fails.
 
         user_data = self._get_user_data(db)
 
-        # ✅ Fetch user feedback from `recommendation_feedback`
-        feedback = db.query(RecommendationFeedback).filter(
-            RecommendationFeedback.user_id == user_id
-        ).all()
+        #  Fetch user feedback from `recommendation_feedback` and join with `Recommendation` table
+        feedback = db.query(RecommendationFeedback, Recommendation).\
+            join(Recommendation, Recommendation.id == RecommendationFeedback.recommendation_id).\
+            filter(RecommendationFeedback.user_id == user_id).all()
 
-        accepted_suggestions = {fb.recommendation_text for fb in feedback if fb.accepted}
-        rejected_suggestions = {fb.recommendation_text for fb in feedback if fb.accepted is False}
+        accepted_suggestions = {rec.recommendation_text for fb, rec in feedback if fb.accepted}
+        rejected_suggestions = {rec.recommendation_text for fb, rec in feedback if not fb.accepted}
 
-        # ✅ Get past recommendations from similar users in the same cluster
+        #  Get past recommendations from similar users in the same cluster
         similar_users = user_data[user_data["user_id"] != user_id]
         similar_users = similar_users[
             similar_users[["emission_value", "miles_traveled"]].apply(
@@ -116,25 +116,28 @@ class AIAgent:
                 Recommendation.user_id.in_(similar_user_ids)
             ).all()
 
-            # ✅ Add accepted suggestions from similar users
+            # Add accepted suggestions from similar users
             for rec in past_recommendations:
                 if rec.accepted:
                     accepted_suggestions.add(rec.recommendation_text)
                 elif rec.accepted is False:
                     rejected_suggestions.add(rec.recommendation_text)
 
-        # ✅ Sort recommendations based on AI logic:
+        #  Sort recommendations based on AI logic:
         refined_recommendations = sorted(
             recommendations,
             key=lambda x: (
-                x["description"] in accepted_suggestions,  # ✅ Prioritize accepted
+                x["description"] in accepted_suggestions,  #  Prioritize accepted
                 x["description"] not in rejected_suggestions,  # ❌ Avoid rejected
-                -x.get("potential_savings", 0)  # ✅ Ensure default value exists
+                -x.get("potential_savings", 0)  #  Ensure default value exists
             ),
             reverse=True
         )
 
-        return refined_recommendations[:5]  # ✅ Return top 5 refined recommendations
+        return refined_recommendations[:5]  #  Return top 5 refined recommendations
+
+
+
 
 
 

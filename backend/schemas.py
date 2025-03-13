@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-# 🚗 Fuel Vehicle Request & Response
+# Fuel Vehicle Request & Response
 class FuelVehicleRequest(BaseModel):
     user_id: int
     fuel_type: str
@@ -16,7 +16,7 @@ class FuelVehicleResponse(BaseModel):
     passengers: int
     emissions_lbs_per_person: float
 
-# ⚡ Electric Vehicle Request & Response
+#  Electric Vehicle Request & Response
 class ElectricVehicleRequest(BaseModel):
     user_id: int
     electric_type: str
@@ -32,7 +32,7 @@ class ElectricVehicleResponse(BaseModel):
     passengers: int
     emissions_lbs_per_person: float
 
-# 🚌 Public Transport Request & Response
+#  Public Transport Request & Response
 class PublicTransportRequest(BaseModel):
     user_id: int
     transport_type: str
@@ -46,7 +46,7 @@ class PublicTransportResponse(BaseModel):
     passengers: int
     emissions_lbs_per_person: float
 
-# 📌 Recommendation Request & Response
+#  Recommendation Request & Response
 class RecommendationResponse(BaseModel):
     user_id: int
     recommendation_text: str

@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-# ✅ Add the project root directory to sys.path
+#  Add the project root directory to sys.path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from logging.config import fileConfig
@@ -10,14 +10,14 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 from dotenv import load_dotenv
 
-# ✅ Now import Base and models after fixing sys.path
+# Now import Base and models after fixing sys.path
 from backend.dependencies import Base
 import backend.models
 from backend.models import User, EmissionHistory, Recommendation, Progress  # List your models here
 
-target_metadata = Base.metadata  # ✅ Make sure this is correctly assigned
+target_metadata = Base.metadata  #  Make sure this is correctly assigned
 
-# ✅ Load environment variables
+# Load environment variables
 env_path = Path(__file__).resolve().parent.parent / "backend" / ".env"
 load_dotenv(dotenv_path=env_path)
 
@@ -28,10 +28,10 @@ if config.config_file_name is not None:
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
-    print(f"✅ DATABASE_URL loaded successfully: {DATABASE_URL}")
+    print(f" DATABASE_URL loaded successfully: {DATABASE_URL}")
     config.set_main_option("sqlalchemy.url", DATABASE_URL)
 else:
-    raise ValueError("🚨 DATABASE_URL not found in environment variables")
+    raise ValueError("DATABASE_URL not found in environment variables")
 
 
 
