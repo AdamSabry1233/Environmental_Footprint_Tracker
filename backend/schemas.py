@@ -18,14 +18,12 @@ class FuelVehicleResponse(BaseModel):
 
 #  Electric Vehicle Request & Response
 class ElectricVehicleRequest(BaseModel):
-    user_id: int
     electric_type: str
     miles_per_kwh: float
     miles: float
     passengers: int
 
 class ElectricVehicleResponse(BaseModel):
-    user_id: int
     electric_type: str
     miles_per_kwh: float
     miles: float

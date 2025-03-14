@@ -662,13 +662,14 @@ def calculate_electric_vehicle_emissions(request: ElectricVehicleRequest):
     )
 
     return ElectricVehicleResponse(
-        user_id=request.user_id,
         electric_type=request.electric_type,
         miles_per_kwh=request.miles_per_kwh,
         miles=request.miles,
         passengers=request.passengers,
-        emissions_lbs_per_person=emissions
+        emissions_lbs_per_person=emissions  # ✅ No more `user_id` required
     )
+
+
 
 
 @app.post("/calculate/public_transport", response_model=PublicTransportResponse)
